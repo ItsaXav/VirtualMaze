@@ -85,6 +85,9 @@ public class GameController : MonoBehaviour {
             int numofLengthBins = BinMapper.DEFAULT_NUM_BIN_LENGTH;
             int radius = BinWallManager.Default_Radius;
             int density = BinWallManager.Default_Density;
+            int orig_width = RangeCorrector.RangeCorrector.HD_WIDTH;
+            int orig_height = RangeCorrector.RangeCorrector.HD_HEIGHT;
+
             string sessionListPath = null;
 
             for (int i = 0; i < args.Length; i++) {
@@ -122,11 +125,32 @@ public class GameController : MonoBehaviour {
                             logger.Print($"Unable to parse {args[i + 1]} to integer, using  {radius} as default");
                         }
                         break;
+                    case "-orig-width":
+                        if (int.TryParse(args[i + 1], out orig_width)) {
+                            logger.Print($"Setting radius to : {orig_width}");
+                        }
+                        else {
+                            logger.Print($"Unable to parse {args[i + 1]} to integer, using  {orig_width} as default");
+                        }
+                        break;
+                    case "-orig-height":
+                        if (int.TryParse(args[i + 1], out orig_height)) {
+                            logger.Print($"Setting radius to : {orig_height}");
+                        }
+                        else {
+                            logger.Print($"Unable to parse {args[i + 1]} to integer, using  {orig_height} as default");
+                        }
+                        break;
                 }
             }
 
             Queue<DirectoryInfo> dirQ = new Queue<DirectoryInfo>();
-
+            
+            // set up a range corrector to correct from original height to viewport, to give ScreenSaver
+            RangeCorrector.RangeCorrector normaliser = new RangeCorrector.RangeCorrector(
+                new Rect(0, 0, orig_width, orig_height),
+                RangeCorrector.RangeCorrector.VIEWPORT_RECT);
+            
             if (!isSessionList) {
                 PwdMode(logger, dirQ);
             }
@@ -153,7 +177,9 @@ public class GameController : MonoBehaviour {
         dirQ.Enqueue(pwd);
     }
 
-    private void ProcessExperimentQueue(Queue<DirectoryInfo> dirQ, BatchModeLogger logger, int numOfBinsForFloorLength) {
+    private void ProcessExperimentQueue(Queue<DirectoryInfo> dirQ, 
+    BatchModeLogger logger, 
+    int numOfBinsForFloorLength) {
         Queue<string> sessionQ = new Queue<string>();
 
         while (dirQ.Count > 0) {
