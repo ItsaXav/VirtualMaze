@@ -10,7 +10,7 @@ using UnityEngine;
 namespace RangeCorrector{
     public class RangeCorrector {
 
-        private Rect  originalRange;
+        private Rect originalRange;
         //x-start, x-end, y-start, y-end
         private Rect newRange; // Target range
         
@@ -18,14 +18,14 @@ namespace RangeCorrector{
         /// <summary>
         /// Width of HD screen res (1920x1080), HD should be the default for most experiments
         /// </summary>
-        public static const int HD_WIDTH = 1920;
+        public static readonly int HD_WIDTH = 1920;
 
         /// <summary>
         /// Height of HD, HD should be the default for most experiments
         /// </summary>
-        public static const int HD_HEIGHT = 1080;
+        public static readonly int HD_HEIGHT = 1080;
 
-        public static const Rect VIEWPORT_RECT = new Rect(0,0,1,1);
+        public static readonly Rect VIEWPORT_RECT = new Rect(0,0,1,1);
 
 
         private static readonly Lazy<RangeCorrector> HD_TO_VIEWPORT_INTERNAL = 
