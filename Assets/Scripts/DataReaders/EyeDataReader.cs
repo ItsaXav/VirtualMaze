@@ -3,7 +3,7 @@ using System;
 
 public abstract class EyeDataReader : IDisposable{
       AllFloatData GetNextData();
-      AllFloatData GetCurrentData(DataTypes dataType);
+      AllFloatData GetCurrentData();
 
       /// <summary>
       /// 

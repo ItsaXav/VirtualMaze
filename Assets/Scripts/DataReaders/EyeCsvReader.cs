@@ -9,7 +9,7 @@ public class EyeCsvReader : EyeDataReader {
         r = new StreamReader(filePath);
     }
 
-    public AllFloatData GetCurrentData(DataTypes dataType) {
+    public AllFloatData GetCurrentData() {
         return current;
     }
 

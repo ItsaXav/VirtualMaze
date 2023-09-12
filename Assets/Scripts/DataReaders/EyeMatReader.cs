@@ -26,7 +26,7 @@ public class EyeMatReader : EyeDataReader {
     }
 
     //datatype is unused for .mat file as they do not contain thee information
-    public AllFloatData GetCurrentData(DataTypes dataType) {
+    public AllFloatData GetCurrentData() {
         return currentData;
     }
 
