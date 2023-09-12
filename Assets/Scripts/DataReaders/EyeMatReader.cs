@@ -1,7 +1,7 @@
 ﻿using Eyelink.Structs;
 using System;
 using UnityEngine;
-
+namespace VirtualMaze.Assets.Scripts.DataReaders;
 public class EyeMatReader : EyeDataReader {
     private AllFloatData currentData = null;
 
@@ -26,11 +26,11 @@ public class EyeMatReader : EyeDataReader {
     }
 
     //datatype is unused for .mat file as they do not contain thee information
-    public AllFloatData GetCurrentData() {
+    public override AllFloatData GetCurrentData() {
         return currentData;
     }
 
-    public AllFloatData GetNextData() {
+    public override AllFloatData GetNextData() {
         if (currentData == null) {
             //do not need to decrement because the decrement is done in the constuctor
             currentData = new MessageEvent(file.timestamps[0, currentTime], parseTrialCode(GetStateCode(stateIndex)), DataTypes.MESSAGEEVENT);
@@ -107,7 +107,7 @@ public class EyeMatReader : EyeDataReader {
         }
     }
 
-    public void Dispose() {
+    public override void Dispose() {
         file.Dispose();
     }
 }

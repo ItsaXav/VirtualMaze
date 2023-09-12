@@ -1,9 +1,9 @@
 ﻿using Eyelink.Structs;
 using System;
-
-public abstract class EyeDataReader : IDisposable{
-      AllFloatData GetNextData();
-      AllFloatData GetCurrentData();
+namespace VirtualMaze.Assets.Scripts.DataReaders;
+public abstract class EyeDataReader {
+      public abstract AllFloatData GetNextData();
+      public abstract AllFloatData GetCurrentData();
 
       /// <summary>
       /// 
@@ -16,8 +16,8 @@ public abstract class EyeDataReader : IDisposable{
         //move edfFile to point to first trial
         bool foundNextTrigger = false;
         while (!foundNextTrigger) {
-            data = eyeReader.GetNextData();
-            if (data.IsNullOrEmpty) {
+            data = this.GetNextData();
+            if (data == null) {
                   return false;
             }
 
@@ -30,6 +30,8 @@ public abstract class EyeDataReader : IDisposable{
                 foundNextTrigger = true;
             } 
         }
-        return foundNextTrigger
+        return foundNextTrigger;
       }
+
+    public abstract void Dispose();
 }

@@ -1,6 +1,6 @@
 ﻿using Eyelink.Structs;
 using System.IO;
-
+namespace VirtualMaze.Assets.Scripts.DataReaders;
 public class EyeCsvReader : EyeDataReader {
     StreamReader r;
     AllFloatData current = null;
@@ -9,11 +9,11 @@ public class EyeCsvReader : EyeDataReader {
         r = new StreamReader(filePath);
     }
 
-    public AllFloatData GetCurrentData() {
+    public override AllFloatData GetCurrentData() {
         return current;
     }
 
-    public AllFloatData GetNextData() {
+    public override AllFloatData GetNextData() {
         string data = r.ReadLine();
         if (string.IsNullOrEmpty(data)) {
             current = null;    
@@ -44,8 +44,9 @@ public class EyeCsvReader : EyeDataReader {
         return current;
     }
 
-    public void Dispose() {
+    public override void Dispose() {
         r.Close();
         r.Dispose();
     }
+
 }

@@ -13,6 +13,8 @@ using UnityEngine.Profiling;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using RangeCorrector;
+using VirtualMaze.Assets.Scripts.DataReaders;
+using Boo.Lang.Runtime;
 /// <summary>
 /// TODO cancel button
 /// </summary>
@@ -227,7 +229,7 @@ public class ScreenSaver : BasicGUIController {
 
         if (isMatFile(edfPath)) {
             try {
-                eyeReader = new EyeMatReader(edfPath);
+                eyeReader = new VirtualMaze.Assets.Scripts.DataReaders.EyeMatReader(edfPath);
             }
             catch (Exception e) {
                 Debug.LogException(e);
@@ -235,7 +237,7 @@ public class ScreenSaver : BasicGUIController {
             }
         }
 
-        ISessionDataReader sessionReader = CreateSessionReader(sessionPath);
+        SessionDataReader sessionReader = CreateSessionReader(sessionPath);
 
         if (eyeReader == null || sessionReader == null) {
             yield break;
@@ -281,7 +283,7 @@ public class ScreenSaver : BasicGUIController {
         return msgEvent == null || msgEvent.dataType == DataTypes.NO_PENDING_ITEMS || trigger == SessionTrigger.ExperimentVersionTrigger;
     }
 
-    private decimal EnqueueData(Queue<SessionData> sessionFrames, ISessionDataReader sessionReader, Queue<AllFloatData> fixations, EyeDataReader eyeReader, out int status, out string reason) {
+    private decimal EnqueueData(Queue<SessionData> sessionFrames, SessionDataReader sessionReader, Queue<AllFloatData> fixations, EyeDataReader eyeReader, out int status, out string reason) {
         Profiler.BeginSample("Enqueue");
         decimal sessionEventPeriod = LoadToNextTriggerSession(sessionReader, sessionFrames, out SessionData sessionData);
         uint edfEventPeriod = LoadToNextTriggerEdf(eyeReader, fixations, out MessageEvent edfdata, out SessionTrigger edfTrigger);
@@ -306,12 +308,13 @@ public class ScreenSaver : BasicGUIController {
         return excessTime;
     }
 
-    private ISessionDataReader CreateSessionReader(string filePath) {
+    private SessionDataReader CreateSessionReader(string filePath) {
         try {
             switch (Path.GetExtension(filePath).ToLower()) {
                 case ".txt":
                     return new SessionReader(filePath);
                 case ".mat":
+                    
                     return new MatSessionReader(filePath);
                 default:
                     Debug.LogWarning($"File extension not supported{filePath}");
@@ -324,7 +327,7 @@ public class ScreenSaver : BasicGUIController {
         }
     }
 
-    private IEnumerator ProcessSession(ISessionDataReader sessionReader, EyeDataReader eyeReader, RayCastRecorder recorder, BinRecorder binRecorder, BinMapper mapper) {
+    private IEnumerator ProcessSession(SessionDataReader sessionReader, EyeDataReader eyeReader, RayCastRecorder recorder, BinRecorder binRecorder, BinMapper mapper) {
         int frameCounter = 0;
         int trialCounter = 1;
 
@@ -815,7 +818,7 @@ public class ScreenSaver : BasicGUIController {
         return result;
     }
 
-    private AllFloatData PrepareFiles(ISessionDataReader sessionReader, EyeDataReader eyeReader, SessionTrigger firstOccurance) {
+    private AllFloatData PrepareFiles(SessionDataReader sessionReader, EyeDataReader eyeReader, SessionTrigger firstOccurance) {
         FindNextSessionTrigger(sessionReader, firstOccurance);
         return FindNextEdfTrigger(eyeReader, firstOccurance);
     }
@@ -825,7 +828,7 @@ public class ScreenSaver : BasicGUIController {
     /// </summary>
     /// <param name="sessionReader">Session reader to move</param>
     /// <param name="trigger">SessionTrigger to move to</param>
-    private void FindNextSessionTrigger(ISessionDataReader sessionReader, SessionTrigger trigger) {
+    private void FindNextSessionTrigger(SessionDataReader sessionReader, SessionTrigger trigger) {
         //move sessionReader to point to first trial
         while (sessionReader.Next()) {
             if (sessionReader.CurrentData.trigger == trigger) {
@@ -874,7 +877,7 @@ public class ScreenSaver : BasicGUIController {
     /// <param name="frames">the Queue to store the data</param>
     /// <param name="trigger">The trigger where the loading stops</param>
     /// <returns>Total time taken from one current trigger to the next</returns>
-    private decimal LoadToNextTriggerSession(ISessionDataReader reader, Queue<SessionData> frames, out SessionData data) {
+    private decimal LoadToNextTriggerSession(SessionDataReader reader, Queue<SessionData> frames, out SessionData data) {
         /* Kahan Summation Algo for more accurate floating pt addition */
         decimal totalTime = 0;//sum
         decimal c = 0;

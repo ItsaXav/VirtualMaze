@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-
+namespace VirtualMaze.Assets.Scripts.DataReaders;
 public class CsvReader<T> : IDisposable {
     private StreamReader reader;
     private T currentData = default;

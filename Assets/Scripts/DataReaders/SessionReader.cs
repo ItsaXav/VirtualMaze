@@ -1,12 +1,13 @@
 ﻿using System;
 using System.IO;
 using UnityEngine;
+using VirtualMaze.Assets.Scripts.DataReaders;
 
 /// <summary>
 /// Reads a text file line by line. 
 /// </summary>
 [Serializable]
-public class SessionReader : ISessionDataReader {
+public class SessionReader : SessionDataReader {
     private StreamReader reader;
     public SessionContext context;
 
@@ -14,11 +15,11 @@ public class SessionReader : ISessionDataReader {
     public SessionData CurrentData => currData;
 
     private int lineNumber = 0;
-    public int CurrentIndex => lineNumber;
+    public new int CurrentIndex => lineNumber;
 
-    public bool HasNext => reader.Peek() > -1;
+    public new bool HasNext => reader.Peek() > -1;
 
-    public float ReadProgress => lineNumber / (float)numFrames;
+    public new float ReadProgress => lineNumber / (float)numFrames;
 
     private readonly string filePath;
     private readonly int numFrames;
@@ -44,7 +45,7 @@ public class SessionReader : ISessionDataReader {
         numFrames = count;
     }
 
-    public bool Next() {
+    public override bool Next() {
         string currentData = reader.ReadLine();
         if (!string.IsNullOrEmpty(currentData)) {
             lineNumber++;
@@ -56,17 +57,17 @@ public class SessionReader : ISessionDataReader {
         }
     }
 
-    public void MoveToNextTrigger() {
-        //if current is already pointing to a trigger move forward first
-        if (currData != null && currData.flag != 0) {
-            Next();
-        }
+    // public override void MoveToNextTrigger() {
+    //     //if current is already pointing to a trigger move forward first
+    //     if (currData != null && currData.flag != 0) {
+    //         Next();
+    //     }
 
-        //search for next trigger/flag
-        while (currData != null && currData.flag == 0) {
-            Next();
-        }
-    }
+    //     //search for next trigger/flag
+    //     while (currData != null && currData.flag == 0) {
+    //         Next();
+    //     }
+    // }
 
     public void MoveToNextTrigger(SessionTrigger trigger) {
         //if current is already pointing to a trigger move forward first
@@ -102,7 +103,7 @@ public class SessionReader : ISessionDataReader {
         }
     }
 
-    public void Dispose() {
+    public override void Dispose() {
         reader.Close();
         reader.Dispose();
     }

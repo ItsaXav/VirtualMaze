@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using VirtualMaze.Assets.Scripts.DataReaders;
 
 public class RaycastDataLoader : ICsvLineParser<PlaybackData> {
 

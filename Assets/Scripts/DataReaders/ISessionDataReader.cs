@@ -1,29 +1,33 @@
 ﻿using System;
 
+namespace VirtualMaze.Assets.Scripts.DataReaders{
 public abstract class SessionDataReader : IDisposable {
-    SessionData CurrentData { get; }
-    int CurrentIndex { get; }
-    bool HasNext { get; }
+    public SessionData CurrentData { get; protected set;}
+    public int CurrentIndex { get; protected set; }
+    public bool HasNext { get; protected set;}
 
     /// <summary>
     /// A value of 0 to 1 representing the read progress of the file.
     /// </summary>
-    float ReadProgress { get; }
+    public float ReadProgress { get; protected set;}
 
-    bool Next();
-    void MoveToNextTrigger();
+    public abstract bool Next();
+
     
     /// <summary>
     /// 
     /// </summary>
     /// <param name="trigger"></param>
     /// <returns></returns>
-    public boolean moveToTrigger(SessionTrigger trigger) {
+    public bool moveToTrigger(SessionTrigger trigger) {
         while (this.Next()) {
-            if (this.CurrentData.trigger = trigger) {
+            if (this.CurrentData.trigger == trigger) {
                 return true;
             }
         }
         return false;
     }
+
+    public abstract void Dispose();
+}
 }
