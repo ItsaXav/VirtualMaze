@@ -38,13 +38,7 @@ public class MatSessionReader : ISessionDataReader {
         file.Dispose();
     }
 
-    public void MoveToNextTrigger() {
-        throw new System.NotImplementedException();
-    }
 
-    public void MoveToNextTrigger(SessionTrigger trigger) {
-        throw new System.NotImplementedException();
-    }
 
     private int GetTrialIndexPosition() {
         return Array.BinarySearch(trialIndex, index);

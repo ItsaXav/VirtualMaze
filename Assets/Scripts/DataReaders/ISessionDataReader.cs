@@ -1,6 +1,6 @@
 ﻿using System;
 
-public interface ISessionDataReader : IDisposable {
+public abstract class SessionDataReader : IDisposable {
     SessionData CurrentData { get; }
     int CurrentIndex { get; }
     bool HasNext { get; }
@@ -12,5 +12,18 @@ public interface ISessionDataReader : IDisposable {
 
     bool Next();
     void MoveToNextTrigger();
-    void MoveToNextTrigger(SessionTrigger trigger);
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="trigger"></param>
+    /// <returns></returns>
+    public boolean moveToTrigger(SessionTrigger trigger) {
+        while (this.Next()) {
+            if (this.CurrentData.trigger = trigger) {
+                return true;
+            }
+        }
+        return false;
+    }
 }
