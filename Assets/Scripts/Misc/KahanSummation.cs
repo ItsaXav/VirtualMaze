@@ -9,7 +9,7 @@ namespace VirtualMaze.Assets.Scripts.Misc
     public abstract class KahanSummation
     {
         [MethodImpl(MethodImplOptions.NoOptimization)]
-        public void Sum(ref decimal sum, ref decimal c, decimal item) {
+        public static void Sum(ref decimal sum, ref decimal c, decimal item) {
         decimal y = item - c;
         decimal t = sum + y;
         c = (t - sum) - y;

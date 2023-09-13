@@ -1,4 +1,9 @@
-﻿using System;
+﻿using System.Threading;
+using System;
+using VirtualMaze.Assets.Scripts.Misc;
+using System.Collections.Generic;
+using System.Collections;
+using Eyelink.Structs;
 
 namespace VirtualMaze.Assets.Scripts.DataReaders{
 public abstract class SessionDataReader : IDisposable {
@@ -19,7 +24,7 @@ public abstract class SessionDataReader : IDisposable {
     /// </summary>
     /// <param name="trigger"></param>
     /// <returns></returns>
-    public bool moveToTrigger(SessionTrigger trigger) {
+    public bool moveToNextTrigger(SessionTrigger trigger) {
         while (this.Next()) {
             if (this.CurrentData.trigger == trigger) {
                 return true;
@@ -27,6 +32,24 @@ public abstract class SessionDataReader : IDisposable {
         }
         return false;
     }
+
+    public List<SessionData> GetUntilTrigger(SessionTrigger targetTrigger) {
+
+        // return new List<SessionData>();
+
+
+        List<SessionData> outList = new List<SessionData>();
+        outList.Add(CurrentData);
+
+        while ((this.CurrentData.trigger != targetTrigger) && this.Next()) {
+            outList.Add(CurrentData);
+        }
+
+        return outList;
+
+    }
+
+   
 
     public abstract void Dispose();
 }
