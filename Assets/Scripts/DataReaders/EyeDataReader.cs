@@ -34,11 +34,11 @@ namespace VirtualMaze.Assets.Scripts.DataReaders {
             return foundNextTrigger;
         }
 
-        public List<AllFloatData> GetUntilTrigger(SessionTrigger targetTrigger) {
+        public List<AllFloatData> GetUntilEvent(DataTypes targetEvent) {
             List<AllFloatData> outList = new List<AllFloatData>();
 
-            bool foundNextTrigger = false;
-            while (!foundNextTrigger) {
+            bool foundEvent = false;
+            while (!foundEvent) {
                 AllFloatData nextData = this.GetNextData();
                 if (nextData == null) {
                     return outList;
@@ -52,13 +52,13 @@ namespace VirtualMaze.Assets.Scripts.DataReaders {
                 // Copied from ScreenSaver.cs pre-refactor
                 // Probably has some relation to the eyelink data format
                 // And the I/O for it implemented previously
-                if (nextData.dataType == DataTypes.MESSAGEEVENT) {
-                    MessageEvent ev = (MessageEvent)nextData;
-
-                    foundNextTrigger = ev.trigger == targetTrigger;
+                if (nextData.dataType == targetEvent) {
+                    foundEvent = true;
+                    return outList;
                 }
                 else if (nextData.dataType == DataTypes.NO_PENDING_ITEMS) {
-                    foundNextTrigger = true;
+                    foundEvent = true;
+                    return outList;
                 } 
             }
             return outList;

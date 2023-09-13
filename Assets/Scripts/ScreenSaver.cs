@@ -1,4 +1,4 @@
-﻿using System.Runtime.InteropServices;
+﻿ using System.Runtime.InteropServices;
 using Eyelink.Structs;
 using HDF.PInvoke;
 using System;
@@ -229,7 +229,7 @@ public class ScreenSaver : BasicGUIController {
 
         if (isMatFile(edfPath)) {
             try {
-                eyeReader = new VirtualMaze.Assets.Scripts.DataReaders.EyeMatReader(edfPath);
+                eyeReader = new EyeMatReader(edfPath);
             }
             catch (Exception e) {
                 Debug.LogException(e);
@@ -785,7 +785,7 @@ public class ScreenSaver : BasicGUIController {
     /// <param name="objHit">Transform of the object hit by the raycast</param>
     /// <param name="hit"></param>
     /// <returns>2D location of the point fixated by that gaze relative to the center of the image</returns>
-    private static Vector2 ComputeLocalPostion(Transform objHit, RaycastHit hit) {
+    public static Vector2 ComputeLocalPostion(Transform objHit, RaycastHit hit) {
         Vector3 hitNormal = ModelNormal(hit.normal);
 
         Vector3 normal;
