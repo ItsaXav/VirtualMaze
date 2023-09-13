@@ -5,6 +5,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using UnityEngine;
+using VirtualMaze.Assets.Scripts.Raycasting;
 
 /// <summary>
 /// MonoBehaviour that affects VirtualMaze globally.
@@ -261,7 +262,8 @@ public class GameController : MonoBehaviour {
 
         generationComplete = false;
         try {
-            yield return saver.ProcessSessionDataTask(sessionPath, edfPath, toFolderPath, mapper);
+            yield return RaycastTaskManager.GetManager(sessionPath, edfPath, toFolderPath, mapper, saver).ProcessSession();
+            // yield return saver.ProcessSessionDataTask(sessionPath, edfPath, toFolderPath, mapper);
         }
         finally { //so that the batchmode app will quit or move on the the next session
             generationComplete = true;

@@ -41,9 +41,9 @@ public class ScreenSaver : BasicGUIController {
     private GameObject binWallPrefab = null;
 
     [SerializeField]
-    private GameObject CueBinCollider = null;
+    public GameObject CueBinCollider = null;
     [SerializeField]
-    private GameObject HintBinCollider = null;
+    public GameObject HintBinCollider = null;
 
     //UI objects
     public FileSelector eyeLinkFileInput;

@@ -9,33 +9,110 @@ using Eyelink.Structs;
 using UnityEngine;
 using VirtualMaze.Assets.Scripts.Raycasting;
 using Unity.Jobs;
+using System.IO;
+using UnityEngine.SceneManagement;
 
 namespace VirtualMaze.Assets.Scripts.Raycasting {
 
-    public class RaycastTaskManager
-    {
-        public Transform cameraRobot;
-        public CueController cueController;
+    public class RaycastTaskManager : MonoBehaviour {
+        private Transform cameraRobot;
+        private CueController cueController;
 
         public static readonly decimal ACCEPTED_TIME_DIFF = 20;
-        private IEnumerator ProcessSession(
-            SessionDataReader sessionReader,
-            EyeDataReader eyeReader,
-            RayCastRecorder recorder,
-            BinRecorder binRecorder,
-            BinMapper mapper) {
+
+        public static readonly int FRAME_PER_BATCH = 100;
+
+        public float PercentageCompleted {get; private set;}
+
+        private EyeDataReader EyeReader;
+        private SessionDataReader SessionReader;
+        private BinMapper BinMapper;
+        private RayCastRecorder Recorder;
+
+        
+
+        private RaycastTaskManager(EyeDataReader eyeDataReader, SessionDataReader sessionReader,
+        BinMapper binMapper, RayCastRecorder recorder, Transform camRobot, CueController cueController) {
+            this.EyeReader = eyeDataReader;
+            this.SessionReader = sessionReader;
+            this.BinMapper = binMapper;
+            this.Recorder = recorder;
+            this.cameraRobot = camRobot;
+            this.cueController = cueController;
+        }
+
+        public static RaycastTaskManager GetManager(string sessionPath, 
+            string eyeDataPath, string writePath, BinMapper binMapper, ScreenSaver screenSaver) {
+            // H5.close();
+            // H5.open();
+            screenSaver.fadeController.gameObject.SetActive(false);
+            screenSaver.CueBinCollider.SetActive(true);
+            screenSaver.HintBinCollider.SetActive(true);
+
+            EyeDataReader eyeReader = null;
+
+            Physics.SyncTransforms();
+
+            if (Path.GetExtension(eyeDataPath).Equals(".mat")) {
+                try {
+                    eyeReader = new EyeMatReader(eyeDataPath);
+                }
+                catch (Exception e) {
+                    Debug.LogException(e);
+                    Console.WriteError("Unable to open eye data mat file.");
+                }
+            }
+
+            SessionDataReader sessionReader = new MatSessionReader(sessionPath);
+            // assume it's just mat for now
+
+
+            if (eyeReader == null || sessionReader == null) {
+               throw new FileLoadException("Could not load file! Check extension");
+            }
+
+            string filename = $"{Path.GetFileNameWithoutExtension(sessionPath)}" +
+                $"_{Path.GetFileNameWithoutExtension(eyeDataPath)}.csv";
+            RayCastRecorder recorder = new RayCastRecorder(writePath, filename);
+
+            // At this point, all essentials are available. Create the object.
+
+            RaycastTaskManager raycastTaskManager = new RaycastTaskManager(eyeReader, 
+                sessionReader, binMapper, recorder, screenSaver.robot, screenSaver.cueController);
+
+           
+
+            raycastTaskManager.cueController.SetMode(CueController.Mode.Recording);
+            raycastTaskManager.cueController.UpdatePosition(raycastTaskManager.cameraRobot);
+            Physics.SyncTransforms();
+
+            SceneManager.LoadScene("Double Tee");
+
+            DateTime start = DateTime.Now;
+            Debug.LogError($"s: {start}");
+
+            return raycastTaskManager;
+            // Console.Write($"s: {start}, e: {DateTime.Now}");
+            // Debug.LogError($"s: {start}, e: {DateTime.Now}");
+
+            // /* Clean up */
+            // //SceneManager.LoadScene("Start");
+            // fadeController.gameObject.SetActive(true);
+            // progressBar.gameObject.SetActive(false);
+            // cueController.SetMode(CueController.Mode.Experiment);
+            // CueBinCollider.SetActive(false);
+            // HintBinCollider.SetActive(false);
+        }
+        public IEnumerator ProcessSession() {
 
         int frameCounter = 0;
         int trialCounter = 1;
 
-        if ((sessionReader == null) || (eyeReader == null)) {
-            yield break;
-        }
 
         //Move to first Trial Trigger
-        sessionReader.moveToNextTrigger(SessionTrigger.TrialStartedTrigger);
-        eyeReader.moveToNextTrigger(SessionTrigger.TrialStartedTrigger);
-        AllFloatData data = eyeReader.GetCurrentData();
+        SessionReader.moveToNextTrigger(SessionTrigger.TrialStartedTrigger);
+        EyeReader.moveToNextTrigger(SessionTrigger.TrialStartedTrigger);
+        AllFloatData data = EyeReader.GetCurrentData();
 
 
         Queue<SessionData> sessionFrames = new Queue<SessionData>();
@@ -54,17 +131,17 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
 
 
         int numberOfTriggers = 0;
-        while (sessionReader.HasNext /*&& numberOfTriggers < 8*/) {
+        while (SessionReader.HasNext /*&& numberOfTriggers < 8*/) {
                 numberOfTriggers++;
                 /*add current to buffer since sessionData.timeDelta is the time difference from the previous frame.
                     * and the previous frame raised a trigger for it to be printed in this frame*/
 
-                sessionFrames.Enqueue(sessionReader.CurrentData);
+                sessionFrames.Enqueue(SessionReader.CurrentData);
 
                 List<SessionData> sessionDatas = 
-                    sessionReader.GetUntilTrigger(SessionTrigger.NoTrigger);
+                    SessionReader.GetUntilTrigger(SessionTrigger.NoTrigger);
                 List<AllFloatData> eyeDatas =
-                    eyeReader.GetUntilEvent(DataTypes.MESSAGEEVENT);
+                    EyeReader.GetUntilEvent(DataTypes.MESSAGEEVENT);
 
                 decimal totalTriggerTime = 0;
                 decimal ca = 0;
@@ -155,31 +232,31 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
                     if (jobHandler != null) {
                         using (jobHandler) {
                             jobHandler.h.Complete(); //force completion if not done yet
-                            jobHandler.writeToFile(currData,recorder,cameraRobot,isLastSampleInFrame);
+                            jobHandler.writeToFile(currData,Recorder,cameraRobot,isLastSampleInFrame);
                         }
                     }
                     //Profiler.EndSample();
 
                     //Profiler.BeginSample("MultiCast Processing");
-                    while (jobQueue.Count > 0) {
-                        using (BinWallManager.BinGazeJobData job = jobQueue.Dequeue()) {
-                            while (!job.h.IsCompleted) {
+                    // while (jobQueue.Count > 0) {
+                    //     using (BinWallManager.BinGazeJobData job = jobQueue.Dequeue()) {
+                    //         while (!job.h.IsCompleted) {
 
-                            }
-                            job.h.Complete();
+                    //         }
+                    //         job.h.Complete();
 
-                            job.process(mapper, binsHitId);
+                    //         job.process(BinMapper, binsHitId);
 
-                            //Profiler.BeginSample("HDFwrite");
-                            binRecorder.RecordMovement(job.sampleTime, binsHitId);
-                            //Profiler.EndSample();
+                    //         //Profiler.BeginSample("HDFwrite");
+                    //         binRecorder.RecordMovement(job.sampleTime, binsHitId);
+                    //         //Profiler.EndSample();
 
-                            //Profiler.BeginSample("ClearHashset");
-                            binsHitId.Clear();
-                            //Profiler.EndSample();
-                        }
-                    }
-                    //Profiler.EndSample();
+                    //         //Profiler.BeginSample("ClearHashset");
+                    //         binsHitId.Clear();
+                    //         //Profiler.EndSample();
+                    //     }
+                    // }
+                    // //Profiler.EndSample();
 
                     binSamples.Clear();
                     if (currData is Fsample) {
@@ -189,18 +266,18 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
                     //     ProcessTrigger(currData);
                     // }
 
-                    // frameCounter %= Frame_Per_Batch;
-                    // if (frameCounter == 0) {
-                    //     progressBar.value = sessionReader.ReadProgress;
-                    //     yield return null;
-                    // }
+                    frameCounter %= FRAME_PER_BATCH;
+                    if (frameCounter == 0) {
+                        PercentageCompleted = SessionReader.ReadProgress;
+                        yield return null;
+                    }
                     //gazePointPool?.ClearScreen();
                 }
 
                 Debug.Log($"ses: {sessionFrames.Count}| fix: {fixations.Count}, timestamp {gazeTime:F4}, timepassed{timepassed:F4}");
                 decimal finalExcess = gazeTime - timepassed;
 
-                Debug.Log($"FINAL EXCESS: {finalExcess} | {sessionReader.CurrentData.timeDeltaMs}");
+                Debug.Log($"FINAL EXCESS: {finalExcess} | {SessionReader.CurrentData.timeDeltaMs}");
                 Debug.Log($"Frame End total time offset: {debugtimeOffset}");
 
                 //clear queues to prepare for next trigger
