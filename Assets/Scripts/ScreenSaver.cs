@@ -485,18 +485,56 @@ public class ScreenSaver : BasicGUIController {
                 Debug.LogError($"Final Excess ({finalExcess}) Larger that Accepted time diff ({Accepted_Time_Diff})");
             }
 
+            // DO CLEANUP IF EXCESS FIXATIONS HERE
             if (fixations.Count > 0) {
-                Debug.LogWarning($"{fixations.Count} fixations assumed to belong to next trigger");
-                while (fixations.Count > 0) {
-                    debugMaxMissedOffset = Math.Max(fixations.Count, debugMaxMissedOffset);
+                Debug.LogWarning($"-----\n{fixations.Count} fixations assumed to belong to next trigger, " +
+                    "and handled seperately from main processing loop, \n" +
+                    $"Starting from timestamp {fixations.Peek().time}\n-----");
+                List<Fsample> leftOverSamples = new List<Fsample>();
+                AllFloatData nextEyeDataEvent = null;
+                bool isLastSampleInFrame = false;
 
-                    if (ProcessData(fixations.Dequeue(), recorder, false, binRecorder) == SessionTrigger.TrialStartedTrigger) {
-                        trialCounter++;
-                        SessionStatusDisplay.DisplayTrialNumber(trialCounter);
+                while (fixations.Count > 0) {
+                    nextEyeDataEvent = fixations.Dequeue();
+                    gazeTime = nextEyeDataEvent.time;
+
+                    isLastSampleInFrame = gazeTime > timepassed;
+                    if (nextEyeDataEvent is MessageEvent) {
+                        break;
+                    }
+                    else if (nextEyeDataEvent is Fsample) {
+                        leftOverSamples.Add((Fsample)nextEyeDataEvent);
+                    }
+
+                }
+
+                RaycastGazesJob leftOverRCastJob = RaycastGazes(leftOverSamples, recorder, nextEyeDataEvent, default);
+                if (leftOverRCastJob != null) {
+                    using (leftOverRCastJob) {
+                        leftOverRCastJob.h.Complete(); //force completion if not done yet
+                        leftOverRCastJob.Process(nextEyeDataEvent,
+                         recorder, robot,
+                         isLastSampleInFrame, gazePointPool, 
+                         displayGazes: frameCounter == Frame_Per_Batch, GazeCanvas, viewport);
                     }
                 }
+                
             }
+
+            // if (fixations.Count > 0) {
+            //     Debug.LogWarning($"{fixations.Count} fixations assumed to belong to next trigger");
+            //     while (fixations.Count > 0) {
+            //         debugMaxMissedOffset = Math.Max(fixations.Count, debugMaxMissedOffset);
+
+            //         if (ProcessData(fixations.Dequeue(), recorder, false, binRecorder) == SessionTrigger.TrialStartedTrigger) {
+            //             trialCounter++;
+            //             SessionStatusDisplay.DisplayTrialNumber(trialCounter);
+            //         }
+            //     }
+            // }
         }
+
+
 
         Debug.LogError(debugMaxMissedOffset);
 
@@ -592,35 +630,35 @@ public class ScreenSaver : BasicGUIController {
         return new RaycastGazesJob(h, numSamples, binSamples, results, cmds);
     }
 
-    private SessionTrigger ProcessData(AllFloatData data, RayCastRecorder recorder, bool isLastSampleInFrame, BinRecorder binRecorder) {
-        switch (data.dataType) {
-            case DataTypes.SAMPLE_TYPE:
-                Fsample fs = (Fsample)data;
-                if (IsInScreenBounds(fs.rawRightGaze)) {
-                    gazePointPool?.AddGazePoint(GazeCanvas, viewport, fs.RightGaze);
+    // private SessionTrigger ProcessData(AllFloatData data, RayCastRecorder recorder, bool isLastSampleInFrame, BinRecorder binRecorder) {
+    //     switch (data.dataType) {
+    //         case DataTypes.SAMPLE_TYPE:
+    //             Fsample fs = (Fsample)data;
+    //             if (IsInScreenBounds(fs.rawRightGaze)) {
+    //                 gazePointPool?.AddGazePoint(GazeCanvas, viewport, fs.RightGaze);
 
-                    RaycastToScene(fs.RightGaze, out string objName, out Vector2 relativePos, out Vector3 objHitPos, out Vector3 gazePoint);
+    //                 RaycastToScene(fs.RightGaze, out string objName, out Vector2 relativePos, out Vector3 objHitPos, out Vector3 gazePoint);
 
-                    recorder.WriteSample(data.dataType, data.time, objName, relativePos, objHitPos, gazePoint, fs.rawRightGaze, robot.position, robot.rotation.eulerAngles.y, isLastSampleInFrame);
-                }
-                else {
-                    //ignore if gaze is out of bounds
-                    recorder.IgnoreSample(data.dataType, data.time, fs.rawRightGaze, robot.position, robot.rotation.eulerAngles.y, isLastSampleInFrame);
-                }
-                return SessionTrigger.NoTrigger;
-            case DataTypes.MESSAGEEVENT:
-                MessageEvent fe = (MessageEvent)data;
-                ProcessTrigger(fe.trigger, cueController);
+    //                 recorder.WriteSample(data.dataType, data.time, objName, relativePos, objHitPos, gazePoint, fs.rawRightGaze, robot.position, robot.rotation.eulerAngles.y, isLastSampleInFrame);
+    //             }
+    //             else {
+    //                 //ignore if gaze is out of bounds
+    //                 recorder.IgnoreSample(data.dataType, data.time, fs.rawRightGaze, robot.position, robot.rotation.eulerAngles.y, isLastSampleInFrame);
+    //             }
+    //             return SessionTrigger.NoTrigger;
+    //         case DataTypes.MESSAGEEVENT:
+    //             MessageEvent fe = (MessageEvent)data;
+    //             ProcessTrigger(fe.trigger, cueController);
 
-                recorder.FlagEvent(fe.message);
+    //             recorder.FlagEvent(fe.message);
 
-                return fe.trigger;
-            default:
-                //ignore others for now
-                //Debug.LogWarning($"Unsupported EDF DataType Found! ({type})");
-                return SessionTrigger.NoTrigger;
-        }
-    }
+    //             return fe.trigger;
+    //         default:
+    //             //ignore others for now
+    //             //Debug.LogWarning($"Unsupported EDF DataType Found! ({type})");
+    //             return SessionTrigger.NoTrigger;
+    //     }
+    // }
 
 
 

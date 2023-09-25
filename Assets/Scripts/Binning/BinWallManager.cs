@@ -1,10 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 using UnityEngine.Profiling;
+using RangeCorrector;
 
 public class BinWallManager {
     const int GroundCeiling = 0;
@@ -103,6 +104,8 @@ public class BinWallManager {
         else {
             numRaycasts = secondaryOffset.Count;
         }
+        
+
 
         NativeArray<RaycastCommand> commands = new NativeArray<RaycastCommand>(numRaycasts, Allocator.TempJob);
         NativeArray<RaycastHit> results = new NativeArray<RaycastHit>(numRaycasts, Allocator.TempJob);
@@ -113,7 +116,9 @@ public class BinWallManager {
         Profiler.BeginSample("Fill array");
         foreach (Vector2 offset in secondaryOffset) {
             if (counter % modder == 0) {
-                Ray r = cam.ScreenPointToRay(gaze + offset);
+                Vector2 offsetGaze = gaze + offset;
+                Vector2 viewportGaze = RangeCorrector.RangeCorrector.HD_TO_VIEWPORT.correctVector(offsetGaze);
+                Ray r = cam.ViewportPointToRay(viewportGaze);
                 commands[idx] = new RaycastCommand(r.origin, r.direction, layerMask: binningLayerOnly);
                 idx++;
             }
@@ -198,7 +203,10 @@ public class BinWallManager {
 
                 int counter = 0;
                 foreach (Vector2 offset in secondaryOffset) {
-                    Ray r = cam.ScreenPointToRay(gaze + offset);
+                    Vector2 offsetGaze = gaze + offset;
+                    Vector2 viewportGaze = RangeCorrector.RangeCorrector.HD_TO_VIEWPORT.correctVector(offsetGaze);
+                    Ray r = cam.ViewportPointToRay(viewportGaze);
+                    // Ray r = cam.ScreenPointToRay(gaze + offset);
                     commands[counter] = new RaycastCommand(r.origin, r.direction, float.MaxValue, binningLayerOnly);
                     counter++;
                 }
@@ -243,7 +251,9 @@ public class BinWallManager {
                 }
 
                 foreach (Vector2 offset in primaryOffset) {
-                    Ray r = cam.ScreenPointToRay(gaze + offset);
+                    Vector2 offsetGaze = gaze + offset;
+                    Vector2 viewportGaze = RangeCorrector.RangeCorrector.HD_TO_VIEWPORT.correctVector(offsetGaze);
+                    Ray r = cam.ViewportPointToRay(viewportGaze);
                     commands[counter] = new RaycastCommand(r.origin, r.direction, float.MaxValue, ignoreBinningLayer);
                     counter++;
                 }
