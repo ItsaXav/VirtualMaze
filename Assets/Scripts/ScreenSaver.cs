@@ -504,8 +504,20 @@ public class ScreenSaver : BasicGUIController {
                     }
 
                 }
+                
+                //BinGazes(binSamples, binRecorder, jobQueue, mapper);
 
+                // the code fragment below is copy-pasted from above.
+                //TODO : refactor the code fragment into a method probably in another class
+                
+                // queue up both binning(multi-casting ) & single-casting in async, in event code is run on multithreaded
+                BinGazes(leftOverSamples, binRecorder, jobQueue, mapper);
                 RaycastGazesJob leftOverRCastJob = RaycastGazes(leftOverSamples, recorder, nextEyeDataEvent, default);
+                
+                
+                //Force completion of & extract data from single first
+
+
                 if (leftOverRCastJob != null) {
                     using (leftOverRCastJob) {
                         leftOverRCastJob.h.Complete(); //force completion if not done yet
@@ -515,6 +527,21 @@ public class ScreenSaver : BasicGUIController {
                          displayGazes: frameCounter == Frame_Per_Batch, GazeCanvas, viewport);
                     }
                 }
+                //jobQueue is guaranteed to be empty by while loop in initial invocation of this code chunk
+                //Force completion of binning jobs and extract data here
+                while (jobQueue.Count > 0) {
+                    using (BinWallManager.BinGazeJobData job = jobQueue.Dequeue()) {
+                        while (!job.h.IsCompleted) {
+                        }
+                        job.h.Complete();
+                        job.process(mapper, binsHitId);
+                        binRecorder.RecordMovement(job.sampleTime, binsHitId);
+                        binsHitId.Clear();
+
+                    }
+                }
+                // cleanup completed at this point
+
                 
             }
 
