@@ -39,6 +39,11 @@ public class ScreenSaver : BasicGUIController {
     /* acceptable time difference between edf and session triggers for approximation of missing trigger */
     private const int Accepted_Time_Diff = 20;
 
+    /* Rect representing rough pixel location of hint image boundary (Unity Coords) */
+    private const float HINT_IMAGE_CLEARANCE = 30f;
+    private const Rect HINT_IMAGE_BOUNDARY = new Rect(( (836 - HINT_IMAGE_CLEARANCE), (880 - HINT_IMAGE_CLEARANCE),
+                                                        248 + 2 * HINT_IMAGE_CLEARANCE,170 + 2 * HINT_IMAGE_CLEARANCE));
+
     [SerializeField]
     private GameObject binWallPrefab = null;
 
@@ -465,7 +470,17 @@ public class ScreenSaver : BasicGUIController {
 
                         bool toAreaCast = true;
                         Ray probeRay;
-                        if (IsInScreenBounds(fsample.RightGaze) && fsample.dataType != DataTypes.SAMPLEINVALID) {
+
+
+
+                        if (HINT_IMAGE_BOUNDARY.Contains(fsample.RightGaze)) {
+                            toAreaCast = false;
+                            Debug.Log($"Skipped multicasting at {fsample.time} due to coordinate being close to hint image");
+                            probeRay = viewport.ViewportPointToRay(viewportGaze);
+                            // Here partially as a sanity check -- 
+                            // Make sure that the raycast method & coordinate method of detecting hint image agree at least sometimes.
+                        }
+                        else if (IsInScreenBounds(fsample.RightGaze) && fsample.dataType != DataTypes.SAMPLEINVALID) {
                             Vector2 viewportGaze = RangeCorrector.HD_TO_VIEWPORT.
                                 correctVector(fsample.RightGaze);
                             probeRay = viewport.ViewportPointToRay(viewportGaze);
@@ -489,7 +504,7 @@ public class ScreenSaver : BasicGUIController {
                             if (hitName.ToLower().Contains("cueimage") ||
                                  hitName.ToLower().Contains("hintimage")) {
                                 toAreaCast = false;
-                                Debug.Log($"Skipped multicasting at {fsample.time}");
+                                Debug.Log($"Skipped multicasting at {fsample.time} due to coordinate impacting hint image");
                             }
                         }
 

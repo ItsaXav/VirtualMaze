@@ -62,7 +62,7 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
                 return Tuple.Create(new RaycastHit[] {}, new Fsample[] {}, new OffsetData[] {});
                 // return empty if the sample gaze is nan (has any nan component)
             }
-            Debug.Log($"Starting areacast with camera @ {viewport.transform.position}");
+            Debug.LogError($"Starting areacast with camera @ {viewport.transform.position}");
                 
             Tuple<List<Fsample>,List<OffsetData>> angleResults = generateFromAngle(sampleToCast);
             List<Fsample> sampleList = angleResults.Item1;
@@ -73,7 +73,7 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             //     new NativeArray<RaycastCommand>(rays.Count, Allocator.TempJob);
             // NativeArray<RaycastHit> resultsAsNative = new NativeArray<RaycastHit>(rays.Count, Allocator.TempJob);
             RaycastHit[] results = new RaycastHit[rays.Count];
-            Debug.Log($"First ray : {rays[0].origin}, {rays[0].direction}");
+            Debug.LogError($"First ray : {rays[0].origin}, {rays[0].direction}");
             
             for (int i = 0; i < rays.Count; i++) {
                 Ray ray = rays[i];
@@ -105,7 +105,11 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             List<OffsetData> offsetList = new List<OffsetData>();
             offsetList.Add(new OffsetData(new Vector2(0,0), new Vector2(0,0)));
             List<Ray> rays = ConvertToRays(sampleList, viewport);
-
+            /* 107 x 72
+            827 x 257
+            gap of 12 
+            30px
+            ~248 x 170*/
             // NativeArray<RaycastCommand> raycastCommands = 
             //     new NativeArray<RaycastCommand>(rays.Count, Allocator.TempJob);
             // NativeArray<RaycastHit> resultsAsNative = new NativeArray<RaycastHit>(rays.Count, Allocator.TempJob);
@@ -126,6 +130,7 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             //     raycastCommands, resultsAsNative, 1, dependency);
             
             // raycastHandle.Complete();
+            //
             UnityEngine.Debug.Log($"Completed (dummy) areacast for {sampleToCast}, did not do in a radius due to center being hint/cue image.");
 
             Fsample[] samples = sampleList.ToArray();
