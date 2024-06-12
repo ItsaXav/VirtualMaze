@@ -12,6 +12,7 @@ using Unity.Collections;
 using VirtualMaze.Assets.Scripts.Utils;
 using UnityEditor;
 using System.Runtime.CompilerServices;
+using System.Collections.ObjectModel;
 using VirtualMaze.Assets.Scripts.Utils;
 
 namespace VirtualMaze.Assets.Scripts.Raycasting {
@@ -31,12 +32,23 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
         float distToScreen;
         Rect screenDims;
         Rect pixelDims;
+        Collection<string> toIgnoreNameList;
+
+        public static Collection<string> defaultToIgnoreNameList = new List<string> {"HintImage","CueImage"}.AsReadOnly();
         public static float SCENE_MAX_DIST = 7.5f;
         // based of tan(30) * 25 units, rounded up to give a buffer.
 
         public AreaRaycastManager(
             float angularRadius, float angularStepSize, float distToScreen, 
                 Rect screenDims, Rect pixelDims) {
+                    // done this way because there's no neat way to do list default argument as far as I know
+            AreaRaycastManager(angularRadius, angularStepSize, distToScreen, screenDims, pixelDims, defaultToIgnoreNameList);
+
+        }
+
+        public AreaRaycastManager(
+            float angularRadius, float angularStepSize, float distToScreen, 
+                Rect screenDims, Rect pixelDims, Collection<string> toIgnoreNameList) {
 
 
             this.angularRadius = angularRadius;
@@ -44,6 +56,7 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             this.distToScreen = distToScreen;
             this.screenDims = screenDims;
             this.pixelDims = pixelDims;
+            this.toIgnoreNameList = toIgnoreNameList;
 
         }
         public static readonly OffsetData NULL_OFFSET = new OffsetData(Vector2.negativeInfinity, Vector2.negativeInfinity);
@@ -68,10 +81,7 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             List<Fsample> sampleList = angleResults.Item1;
             List<OffsetData> offsetList = angleResults.Item2;
             List<Ray> rays = ConvertToRays(sampleList, viewport);
-
-            // NativeArray<RaycastCommand> raycastCommands = 
-            //     new NativeArray<RaycastCommand>(rays.Count, Allocator.TempJob);
-            // NativeArray<RaycastHit> resultsAsNative = new NativeArray<RaycastHit>(rays.Count, Allocator.TempJob);
+            bool toIgnore = false;
             RaycastHit[] results = new RaycastHit[rays.Count];
             Debug.LogError($"First ray : {rays[0].origin}, {rays[0].direction}");
             
@@ -82,12 +92,19 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
                     continue;
                      // will leave the raycast command as null, no raycasting will be performed here.
                 }
-                Physics.Raycast(ray : ray, hitInfo : out results[i], maxDistance : float.MaxValue, layerMask : BinWallManager.ignoreBinningLayer);            }
+                Physics.Raycast(ray : ray, hitInfo : out results[i], maxDistance : float.MaxValue, layerMask : BinWallManager.ignoreBinningLayer);
+                
+                if (toIgnoreNameList.IndexOf(results[i].transform.name) >= 0) { 
+                    // IndexOf returns -1 if not found, indexOf used for logging purposes
+                    toIgnore = true;
+                    UnityEngine.Debug.Log($"Made decision to ignore result due to hitting center at offset of {offsetList[i]}," +
+                                            $"hit {toIgnoreNameList[toIgnoreNameList.IndexOf(results[i].transform.name)]}");
+                    return Tuple.Create(new RaycastHit[] {}, new Fsample[] {}, new OffsetData[] {}); 
+                    break;
+                }
+            }
             
-            // JobHandle raycastHandle = RaycastCommand.ScheduleBatch(
-            //     raycastCommands, resultsAsNative, 1, dependency);
-            
-            // raycastHandle.Complete();
+
             UnityEngine.Debug.Log($"Completed areacast for {sampleToCast}");
             UnityEngine.Debug.Log($"Camera was at {viewport.transform.position}");
             Fsample[] samples = sampleList.ToArray();
@@ -96,6 +113,12 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
         }
 
         public Tuple<RaycastHit[],Fsample[],OffsetData[]> ScheduleDummyCasting(Fsample sampleToCast, Camera viewport, JobHandle dependency = default) {
+            
+            // TODO : Consider if this should always return an empty tuple.
+            // Reason for : More meaningful to return empty -- dummy implies no casting done at all
+            // Reason against : Debugging purposes : singular data points should be irrelevant during multicasting anyway, 
+            //  and seeing which objects tend to be dummied (which should mostly be hint/cue image) might be useful
+
             if (sampleToCast.RightGaze.isNaN()) {
                 return Tuple.Create(new RaycastHit[] {}, new Fsample[] {}, new OffsetData[] {});
                 // return empty if the sample gaze is nan (has any nan component)
@@ -105,17 +128,13 @@ namespace VirtualMaze.Assets.Scripts.Raycasting {
             List<OffsetData> offsetList = new List<OffsetData>();
             offsetList.Add(new OffsetData(new Vector2(0,0), new Vector2(0,0)));
             List<Ray> rays = ConvertToRays(sampleList, viewport);
-            /* 107 x 72
-            827 x 257
-            gap of 12 
-            30px
-            ~248 x 170*/
             // NativeArray<RaycastCommand> raycastCommands = 
             //     new NativeArray<RaycastCommand>(rays.Count, Allocator.TempJob);
             // NativeArray<RaycastHit> resultsAsNative = new NativeArray<RaycastHit>(rays.Count, Allocator.TempJob);
             RaycastHit[] results = new RaycastHit[rays.Count];
             Debug.Log($"First ray : {rays[0].origin}, {rays[0].direction}");
             for (int i = 0; i < rays.Count; i++) {
+                // At this point, rays contains only one ray : the center ray.
                 Ray ray = rays[i];
                 
                 if (RayConstants.IsAbsoluteEqual(ray, RayConstants.NullRay)) {

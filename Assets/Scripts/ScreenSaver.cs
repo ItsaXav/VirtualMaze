@@ -40,9 +40,13 @@ public class ScreenSaver : BasicGUIController {
     private const int Accepted_Time_Diff = 20;
 
     /* Rect representing rough pixel location of hint image boundary (Unity Coords) */
-    private const float HINT_IMAGE_CLEARANCE = 30f;
+    // Most recently -- Deprecated in favour of if the multicast cone overlaps with the hint image.
+    // This controls the area around the hint image, where if the center of the multicast cone would hit this, that datapoint is not multicast.
+    private const float HINT_IMAGE_CLEARANCE = 0f;
+     // set to 0 for now -- deprecated for the time being. Feel free to re-enable if deemed relevant to investigation again
     private const Rect HINT_IMAGE_BOUNDARY = new Rect(( (836 - HINT_IMAGE_CLEARANCE), (880 - HINT_IMAGE_CLEARANCE),
                                                         248 + 2 * HINT_IMAGE_CLEARANCE,170 + 2 * HINT_IMAGE_CLEARANCE));
+    // the above WOULD be set to const, but it cannot be.
 
     [SerializeField]
     private GameObject binWallPrefab = null;
@@ -359,14 +363,16 @@ public class ScreenSaver : BasicGUIController {
             $"Step Size : {raycastSettings.StepSize} \n"+
             $"distToScreen : {raycastSettings.DistToScreen}\n" +
             $"screenDims : {raycastSettings.ScreenCmDims}\n" +
-            $"pixelDims : {raycastSettings.ScreenPixelDims}");
+            $"pixelDims : {raycastSettings.ScreenPixelDims}\n" +
+            $"toIgnoreNameList : {AreaRayCastManager.defaultToIgnoreNameList}");
         AreaRaycastManager areaRaycastManager = 
             new AreaRaycastManager(
                 angularRadius: raycastSettings.GazeRadius,
                 angularStepSize: raycastSettings.StepSize,
                 distToScreen: raycastSettings.DistToScreen,
                 screenDims : raycastSettings.ScreenCmDims,
-                pixelDims : raycastSettings.ScreenPixelDims
+                pixelDims : raycastSettings.ScreenPixelDims,
+                toIgnoreNameList : areaRaycastManager.defaultToIgnoreNameList
             );
 
 
